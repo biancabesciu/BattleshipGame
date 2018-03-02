@@ -22,8 +22,8 @@ let view = {
 const model = {
     bordSize: 7,
     numShips: 3,
-    shipLenght: 3,
-    shipSunk: 0,
+    shipLength: 3,
+    shipsSunk: 0,
 
     ships: [
         {locations: ["10", "20", "30"], hits: ["", "", ""]},
@@ -32,21 +32,38 @@ const model = {
         ],
 
     fire: function(guess) {
-        for(let i = 0; i < numShips.length; i++) {
+        for(let i = 0; i < this.numShips; i++) {
             let ship = this.ships[i];
-            locations = ship.locations;
-            const index = locations.indexOf(guess);
+            let index = ship.locations.indexOf(guess);
+
             if(index >= 0) {
                 // we have a hit!
                 ship.hits[index] = "hit";
-                return true;
+                view.displayHit(guess);
+                view.displayMessage("HIT!");
+
+                if(this.isSunk(ship)) {
+                    this.shipsSunk++;
+                }
             }
         }
+        view.displayHit(guess);
+        view.displayMessage("MISS!");
         return false;
-    }
+    },
+
+    isSunk: function(ship) {
+        for(let i = 0; i < this.shipLength; i++) {
+            if(ship.hits[i] !== "hit") {
+                return false;
+            }
+        }
+        return true;
+    },
 };
 
 
 
 // glue everything together including
 // by getting the player’s input and executing the game logic.
+
