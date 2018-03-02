@@ -5,10 +5,13 @@ let view = {
     },
 
     displayHit: function(location) {
-
+        let cell = document.getElementById(location);
+        cell.setAttribute('class', 'hit');
     },
 
     displayMiss: function(location) {
-
+        let cell = document.getElementById(location);
+        cell.setAttribute('class', 'miss');
     }
+
 };
