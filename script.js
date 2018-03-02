@@ -1,3 +1,97 @@
+// updates the state of the game
+//keeps track of ships - where they are, if they've been hit or sunk
+const model = {
+    boardSize: 7,
+    numShips: 3,
+    shipLength: 3,
+    shipsSunk: 0,
+
+    ships: [
+        {locations: [0, 0, 0], hits: ["", "", ""]},
+        {locations: [0, 0, 0], hits: ["", "", ""]},
+        {locations: [0, 0, 0], hits: ["", "", ""]}
+    ],
+
+    fire: function (guess) {
+        for (let i = 0; i < this.numShips; i++) {
+            let ship = this.ships[i];
+            let index = ship.locations.indexOf(guess);
+
+            if (index >= 0) {
+                // we have a hit!
+                ship.hits[index] = "hit";
+                view.displayHit(guess);
+                view.displayMessage("HIT!");
+
+                if (this.isSunk(ship)) {
+                    view.displayMessage("You sank my battleship!");
+                    this.shipsSunk++;
+                }
+                return true;
+            }
+        }
+        view.displayMiss(guess);
+        view.displayMessage("MISS!");
+        return false;
+    },
+
+    isSunk: function (ship) {
+        for (let i = 0; i < this.shipLength; i++) {
+            if (ship.hits[i] !== "hit") {
+                return false;
+            }
+        }
+        return true;
+    },
+
+    generateShipLocations: function() {
+        let locations;
+        for (let i = 0; i < this.numShips; i++) {
+            do {
+                locations = this.generateShip();
+            } while (this.collision(locations));
+            this.ships[i].locations = locations;
+        }
+        console.log("Ships array: ");
+        console.log(this.ships);
+    },
+
+    generateShip: function() {
+        let direction = Math.floor(Math.random() * 2);
+        let row, col;
+
+        if (direction === 1) { // horizontal
+            row = Math.floor(Math.random() * this.boardSize);
+            col = Math.floor(Math.random() * (this.boardSize - this.shipLength + 1));
+        } else { // vertical
+            row = Math.floor(Math.random() * (this.boardSize - this.shipLength + 1));
+            col = Math.floor(Math.random() * this.boardSize);
+        }
+
+        let newShipLocations = [];
+        for (let i = 0; i < this.shipLength; i++) {
+            if (direction === 1) {
+                newShipLocations.push(row + "" + (col + i));
+            } else {
+                newShipLocations.push((row + i) + "" + col);
+            }
+        }
+        return newShipLocations;
+    },
+
+    collision: function(locations) {
+        for (let i = 0; i < this.numShips; i++) {
+            let ship = this.ships[i];
+            for (let j = 0; j < locations.length; j++) {
+                if (ship.locations.indexOf(locations[j]) >= 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+};
+
 // updates the display with hits, misses and messages for the user
 let view = {
     displayMessage: function(msg) {
@@ -17,64 +111,25 @@ let view = {
 
 };
 
-// updates the state of the game
-//keeps track of ships - where they are, if they've been hit or sunk
-const model = {
-    bordSize: 7,
-    numShips: 3,
-    shipLength: 3,
-    shipsSunk: 0,
-
-    ships: [
-        {locations: ["10", "20", "30"], hits: ["", "", ""]},
-        {locations: ["32", "33", "34"], hits: ["", "", ""]},
-        {locations: ["63", "64", "65"], hits: ["", "", "hit"]}
-        ],
-
-    fire: function(guess) {
-        for(let i = 0; i < this.numShips; i++) {
-            let ship = this.ships[i];
-            let index = ship.locations.indexOf(guess);
-
-            if(index >= 0) {
-                // we have a hit!
-                ship.hits[index] = "hit";
-                view.displayHit(guess);
-                view.displayMessage("HIT!");
-
-                if(this.isSunk(ship)) {
-                    this.shipsSunk++;
-                }
-            }
-        }
-        view.displayHit(guess);
-        view.displayMessage("MISS!");
-        return false;
-    },
-
-    isSunk: function(ship) {
-        for(let i = 0; i < this.shipLength; i++) {
-            if(ship.hits[i] !== "hit") {
-                return false;
-            }
-        }
-        return true;
-    },
-};
-
 // glue everything together including
 // by getting the player’s input and executing the game logic.
 const controller = {
-    guess: 0,
+    guesses: 0,
 
     processGuess: function(guess) {
         let location = parseGuess(guess);
         if (location) {
-            
+            this.guesses++;
+            let hit = model.fire(location);
+
+            if (hit && model.shipsSunk === model.numShips) {
+                view.displayMessage("You sank all my battleships, in " + this.guesses + " guesses");
+            }
         }
     }
 };
 
+// helper function to parse a guess from the user
 function parseGuess(guess) {
     const alphabet = ["A", "B", "C", "D", "E", "F", "G"];
 
@@ -97,3 +152,35 @@ function parseGuess(guess) {
     return null;
 }
 
+// event handlers
+function handleKeyPress(e) {
+    let fireButton = document.getElementById("fireButton");
+
+    if (e.keyCode === 13) {
+        fireButton.click();
+        return false;
+    }
+}
+
+function handleFireButton() {
+    let guessInput = document.getElementById('guessInput');
+    let guess = guessInput.value;
+    controller.processGuess(guess);
+    guessInput.value = "";
+}
+
+// init - called when the page has completed loading
+window.onload = init;
+
+function init() {
+    // Fire! button onclick handler
+    let fireButton = document.getElementById("fireButton");
+    fireButton.onclick = handleFireButton;
+
+    // handle "return" key press
+    let guessInput = document.getElementById("guessInput");
+    guessInput.onkeypress = handleKeyPress;
+
+    // place the ships on the game board
+    model.generateShipLocations();
+}
